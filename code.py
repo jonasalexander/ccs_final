@@ -1,172 +1,46 @@
-import math
-import numpy as np
 from matplotlib.pylab import plt
-import random
-from copy import deepcopy
 
-def normalize(probs):
-	s = sum(probs)
-	return [i/float(s) for i in probs]
+import helper as h
+import value_iteration as vit
+import data as d
 
-def normalizeVals(probDict):
-	s = sum(probDict.values())
-	return {i: probDict[i]/float(s) for i in probDict}
+MODEL = 3
 
 # Model 1
+if MODEL == 1:
+	# GOAL INFERENCE
 
-beta = 2
+	probG = [{i: 1.0/3 for i in d.goalPos.keys()}]
 
-states = [(7, 0), (6, 1), (5, 2), (5, 3), (4, 4), (3, 5), (2, 6), (2, 7), \
-		(2, 8), (2, 9), (2, 10), (1, 11), (0, 12)]
+	# at each time step, calculate the probability of each goal up to that point
+	for t, st in enumerate(d.states[:-1]):
+		currProbs = probG[t].copy()
+		ns = d.states[t+1]
+		action = (ns[0]-st[0], ns[1]-st[1])
+		for goal in d.goalPos:
+			# prob of taking action needed to go st->ns
+			currProbs[goal] *= vit.actionProb(action, st, goal)
 
-goalPos = {"A": (0, 15), "B": (7, 15), "C": (0, 2)}
+		currProbs = h.normalizeVals(currProbs)
+		probG.append(currProbs)
 
-world = np.zeros(shape=(8, 16)) # y then x
-for goal in goalPos:
-	y, x = goalPos[goal]
-	world[y][x] = 1
+	probGA = [e["A"] for e in probG]
+	probGB = [e["B"] for e in probG]
+	probGC = [e["C"] for e in probG]
 
-for i in [3, 4, 5, 6, 7]:
-	for j in [7, 8]:
-		world[i][j] = -1
+	plt.plot(probGA[2:], label="A")
+	plt.plot(probGB[2:], label="B")
+	plt.plot(probGC[2:], label="C")
+	plt.legend()
+	plt.show()
 
-start = (7, 0)
-
-# LEARN VALUE FUNCTION
-
-def legalActions(state):
-	y, x = state
-	if world[y][x] == -1:
-		return []
-
-	actions = [(0, 0)]
-	
-	up, down, left, right = False, False, False, False
-	if y != 0 and world[y-1][x] != -1:
-		up = True
-		actions.append((-1, 0))
-	if y != len(world)-1 and world[y+1][x] != -1:
-		down = True
-		actions.append((1, 0))
-
-	if x != 0 and world[y][x-1] != -1:
-		left = True
-		actions.append((0, -1))
-	if x != len(world[0])-1 and world[y][x+1] != -1:
-		right = True
-		actions.append((0, 1))
-
-	if up and left and world[y-1][x-1] != -1:
-		actions.append((-1, -1))
-	if up and right and world[y-1][x+1] != -1:
-		actions.append((-1, 1))
-	if down and left and world[y+1][x-1] != -1:
-		actions.append((1, -1))
-	if down and right and world[y+1][x+1] != -1:
-		actions.append((1, 1))
-
-	return actions
-
-def cost(action):
-	return 0 if action == (0, 0) else 1
-
-pathLengths = {goal: {} for goal in goalPos}
-
-for goal in goalPos:
-	y, x = goalPos[goal]
-	q = [((y, x), 0)]
-	pathLengths[goal][(y, x)] = 0
-	explored = set([(y, x)])
-	while q:
-		next, dist = q.pop(0)
-		for a in legalActions(next):
-			ns = (next[0]+a[0], next[1]+a[1])
-			if ns in explored:
-				continue
-			pathLengths[goal][ns] = dist+cost(a)
-			explored.add(ns)
-			q.append((ns, dist+cost(a)))
-
-def lengthOfPath(state, goal):
-	return pathLengths[goal][state]
-
-stateValues = {goal: {} for goal in goalPos}
-
-def q(action, state, goal):
-	ns = (state[0]+action[0], state[1]+action[1])
-	return stateValues[goal][ns]-cost(action)
-
-def actionProb(action, state, goal):
-	index = None
-	probs = []
-	for i, a in enumerate(legalActions(state)):
-		ns = (state[0]+a[0], state[1]+a[1])
-		if a == action:
-			index = i
-		probs.append(math.exp(beta*q(a, state, goal)))
-	probs = normalize(probs)
-	return probs[index]
-
-# Initialize with length of direct path estimate
-for goal in goalPos:
-	y, x = goalPos[goal]
-	for i in range(len(world)):
-		for j in range(len(world[i])):
-			if world[i][j] == -1:
-				continue
-			s = (i, j)
-			stateValues[goal][s] = -1*lengthOfPath(s, goal)
-
-# Update state values iteratively
-for i in range(20):
-	# policy is given by old q values
-	oldValues = deepcopy(stateValues)
-	for goal in goalPos:
-		y, x = goalPos[goal]
-		for state in oldValues[goal]:
-			if state == (y, x):
-				stateValues[goal][state] = 0
-				continue
-			probs = []
-			vals = []
-			for a in legalActions(state):
-				ns = (state[0]+a[0], state[1]+a[1])
-				qa = oldValues[goal][ns]-cost(a)
-				probs.append(math.exp(beta*qa))
-				vals.append(qa)
-			probs = normalize(probs)
-			stateValues[goal][state] = sum([g*h for g,h in zip(probs,vals)])
-
-# GOAL INFERENCE
-
-probG = [{i: 1.0/3 for i in goalPos.keys()}]
-
-# at each time step, calculate the probability of each goal up to that point
-for t, st in enumerate(states[:-1]):
-	currProbs = probG[t].copy()
-	ns = states[t+1]
-	action = (ns[0]-st[0], ns[1]-st[1])
-	for goal in goalPos:
-		# prob of taking action needed to go st->ns
-		currProbs[goal] *= actionProb(action, st, goal)
-
-	currProbs = normalizeVals(currProbs)
-	probG.append(currProbs)
-
-probGA = [e["A"] for e in probG]
-probGB = [e["B"] for e in probG]
-probGC = [e["C"] for e in probG]
-
-plt.plot(probGA[2:], label="A")
-plt.plot(probGB[2:], label="B")
-plt.plot(probGC[2:], label="C")
-plt.legend()
-plt.show()
-
+"""
 # Model 2
 
 beta = 1.5
 kappa = 0.9
+
+probG = [{i: 1.0/3 for i in goalPos.keys()}]
 
 
 
@@ -174,12 +48,43 @@ kappa = 0.9
 # distribution over goals within each type uniform
 
 """
+
 # Model 3
 
-beta = 2
-gamma = 0.1
+if MODEL == 3:
 
-# goals can change over time
-# k goals, 
-"""
+	# goals can change over time
+	# k goals, 
+
+	# GOAL INFERENCE
+
+	probG = [{i: 1.0/3 for i in d.goalPos.keys()}]
+	k = len(d.goalPos.keys())
+
+	# at each time step, calculate the probability of each goal up to that point
+	for t, st in enumerate(d.states[:-1]):
+		currProbs = probG[t].copy()
+		ns = d.states[t+1]
+		action = (ns[0]-st[0], ns[1]-st[1])
+		for goal in d.goalPos:
+			# prob of taking action needed to go st->ns
+			probGoal = 0
+			for g in probG[t]:
+				p1 = probG[t][g]
+				p2 = 1-d.gamma if g == goal else d.gamma/(k-1)
+				probGoal += p1*p2
+			currProbs[goal] = vit.actionProb(action, st, goal)*probGoal
+
+		currProbs = h.normalizeVals(currProbs)
+		probG.append(currProbs)
+
+	probGA = [e["A"] for e in probG]
+	probGB = [e["B"] for e in probG]
+	probGC = [e["C"] for e in probG]
+
+	plt.plot(probGA, label="A")
+	plt.plot(probGB, label="B")
+	plt.plot(probGC, label="C")
+	plt.legend()
+	plt.show()
 
