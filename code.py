@@ -17,8 +17,7 @@ def normalizeVals(probDict):
 beta = 2
 
 states = [(7, 0), (6, 1), (5, 2), (5, 3), (4, 4), (3, 5), (2, 6), (2, 7), \
-		(2, 8), (2, 9), (2, 10), (1, 11), (0, 12)]#, (0, 12), (0, 12), (0, 12),\
-		#(0, 12), (0, 12), (0, 12), (0, 12), (0, 12), (0, 12), (0, 12), (0, 12)]
+		(2, 8), (2, 9), (2, 10), (1, 11), (0, 12)]
 
 goalPos = {"A": (0, 15), "B": (7, 15), "C": (0, 2)}
 
@@ -108,7 +107,7 @@ def actionProb(action, state, goal):
 	probs = normalize(probs)
 	return probs[index]
 
-# initialize with straight line path estimate
+# Initialize with length of direct path estimate
 for goal in goalPos:
 	y, x = goalPos[goal]
 	for i in range(len(world)):
@@ -118,18 +117,6 @@ for goal in goalPos:
 			s = (i, j)
 			stateValues[goal][s] = -1*lengthOfPath(s, goal)
 
-for i in range(len(world)):
-	l = []
-	for j in range(len(world[i])):
-		state = (i, j)
-		if state in stateValues["A"]:
-			l.append('%.1f' % stateValues["A"][state])
-		else:
-			l.append("0")
-		
-	print " ".join(l)
-print "\n"
-
 # Update state values iteratively
 for i in range(20):
 	# policy is given by old q values
@@ -137,8 +124,6 @@ for i in range(20):
 	for goal in goalPos:
 		y, x = goalPos[goal]
 		for state in oldValues[goal]:
-			# probability of each action that I'll take from this state
-			# times value of the state I'd end up in
 			if state == (y, x):
 				stateValues[goal][state] = 0
 				continue
@@ -146,63 +131,13 @@ for i in range(20):
 			vals = []
 			for a in legalActions(state):
 				ns = (state[0]+a[0], state[1]+a[1])
-				#print state, a, ns
 				qa = oldValues[goal][ns]-cost(a)
 				probs.append(math.exp(beta*qa))
 				vals.append(qa)
 			probs = normalize(probs)
-			if state in []:
-				print state, legalActions(state)
-				print vals
-				print probs
-				print sum([g*h for g,h in zip(probs,vals)])
 			stateValues[goal][state] = sum([g*h for g,h in zip(probs,vals)])
 
-
-
-#print stateValues["A"][(5, 3)], stateValues["A"][(4, 3)]
-#print stateValues["A"][(1, 6)], stateValues["B"][(1, 6)], stateValues["C"][(1, 6)]
-"""
-for i in range(len(world)):
-	l = []
-	for j in range(len(world[i])):
-		state = (i, j)
-		if state in stateValues["A"]:
-			l.append('%.1f' % stateValues["A"][state])
-		else:
-			l.append("0")
-		
-	print " ".join(l)
-print "A \n"
-
-for i in range(len(world)):
-	l = []
-	for j in range(len(world[i])):
-		state = (i, j)
-		if state in stateValues["B"]:
-			l.append('%.1f' % stateValues["B"][state])
-		else:
-			l.append("0")
-		
-	print " ".join(l)
-print "B \n"
-
-for i in range(len(world)):
-	l = []
-	for j in range(len(world[i])):
-		state = (i, j)
-		if state in stateValues["C"]:
-			l.append('%.1f' % stateValues["C"][state])
-		else:
-			l.append("0")
-		
-	print " ".join(l)
-
-print "A: ", actionProb((0, 1), (5, 2), "A")
-print "C: ", actionProb((0, 1), (5, 2), "C")
-"""
-# Goal inference
-#beta = 0.2
+# GOAL INFERENCE
 
 probG = [{i: 1.0/3 for i in goalPos.keys()}]
 
@@ -215,24 +150,19 @@ for t, st in enumerate(states[:-1]):
 		# prob of taking action needed to go st->ns
 		currProbs[goal] *= actionProb(action, st, goal)
 
-	#print currProbs
 	currProbs = normalizeVals(currProbs)
-	print action, st, currProbs
 	probG.append(currProbs)
-
-#print probG
 
 probGA = [e["A"] for e in probG]
 probGB = [e["B"] for e in probG]
 probGC = [e["C"] for e in probG]
 
-plt.plot(probGA, label="A")
-plt.plot(probGB, label="B")
-plt.plot(probGC, label="C")
+plt.plot(probGA[2:], label="A")
+plt.plot(probGB[2:], label="B")
+plt.plot(probGC[2:], label="C")
 plt.legend()
 plt.show()
 
-"""
 # Model 2
 
 beta = 1.5
@@ -243,7 +173,7 @@ kappa = 0.9
 # with probability kappa, complex goal that has intermediate point as goal first
 # distribution over goals within each type uniform
 
-
+"""
 # Model 3
 
 beta = 2
