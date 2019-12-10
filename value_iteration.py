@@ -62,11 +62,11 @@ for goal in goalPos:
 def lengthOfPath(state, goal):
 	return pathLengths[goal][state]
 
-stateValues = {goal: {} for goal in goalPos}
+stateVals = {goal: {} for goal in goalPos}
 
 def q(action, state, goal):
 	ns = (state[0]+action[0], state[1]+action[1])
-	return stateValues[goal][ns]-cost(action)
+	return stateVals[goal][ns]-cost(action)
 
 def actionProb(action, state, goal):
 	index = None
@@ -87,17 +87,17 @@ for goal in goalPos:
 			if world[i][j] == -1:
 				continue
 			s = (i, j)
-			stateValues[goal][s] = -1*lengthOfPath(s, goal)
+			stateVals[goal][s] = -1*lengthOfPath(s, goal)
 
 # Update state values iteratively
 for i in range(20):
 	# policy is given by old q values
-	oldValues = deepcopy(stateValues)
+	oldValues = deepcopy(stateVals)
 	for goal in goalPos:
 		y, x = goalPos[goal]
 		for state in oldValues[goal]:
 			if state == (y, x):
-				stateValues[goal][state] = 0
+				stateVals[goal][state] = 0
 				continue
 			probs = []
 			vals = []
@@ -107,6 +107,6 @@ for i in range(20):
 				probs.append(math.exp(beta*qa))
 				vals.append(qa)
 			probs = h.normalize(probs)
-			stateValues[goal][state] = sum([v1*v2 for v1,v2 in zip(probs,vals)])
+			stateVals[goal][state] = sum([v1*v2 for v1,v2 in zip(probs,vals)])
 
 
