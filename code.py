@@ -4,7 +4,7 @@ import helper as h
 import value_iteration as vit
 import data as d
 
-MODEL = 4
+MODEL = 1
 
 # Model 1
 if MODEL == 1:
@@ -28,9 +28,9 @@ if MODEL == 1:
 	probGB = [e["B"] for e in probG]
 	probGC = [e["C"] for e in probG]
 
-	plt.plot(probGA[2:], label="A")
-	plt.plot(probGB[2:], label="B")
-	plt.plot(probGC[2:], label="C")
+	plt.plot(probGA, label="A")
+	plt.plot(probGB, label="B")
+	plt.plot(probGC, label="C")
 	plt.legend()
 	plt.show()
 
@@ -127,7 +127,7 @@ if MODEL == 4:
 				p1 = probG[t][g]
 				p2 = 1-d.gamma if g == goal else d.gamma/(k-1)
 				probGoal += p1*p2
-			backProbs = vit.actionProb(action, st, goal)*probGoal
+			forwardProbs = vit.actionProb(action, st, goal)*probGoal
 			if t < len(d.states)-2:
 				currProbs[goal] = forwardProbs*backProbs[goal][t]
 			else:
