@@ -98,7 +98,7 @@ if MODEL == 4:
 	probG = [{i: 1.0/3 for i in d.goalPos.keys()}]
 	k = len(d.goalPos.keys())
 
-	forwardProbs = {goal: [1 for _ in range(len(d.states)-2)] for goal in d.goalPos}
+	backProbs = {goal: [1 for _ in range(len(d.states)-2)] for goal in d.goalPos}
 	for goal in d.goalPos:
 		for t in range(1, len(d.states)):
 			if t == 1 or t == 2:
@@ -112,8 +112,8 @@ if MODEL == 4:
 
 				p2 = 1-d.gamma if g == goal else d.gamma/(k-1)
 				
-				rsum += p1*forwardProbs[goal][-t+1]*p2
-			forwardProbs[goal][-t+2] = rsum
+				rsum += p1*backProbs[goal][-t+1]*p2
+			backProbs[goal][-t+2] = rsum
 
 	# at each time step, calculate the probability of each goal up to that point
 	for t, st in enumerate(d.states[:-1]):
@@ -127,11 +127,11 @@ if MODEL == 4:
 				p1 = probG[t][g]
 				p2 = 1-d.gamma if g == goal else d.gamma/(k-1)
 				probGoal += p1*p2
-			probBack = vit.actionProb(action, st, goal)*probGoal
+			backProbs = vit.actionProb(action, st, goal)*probGoal
 			if t < len(d.states)-2:
-				currProbs[goal] = probBack*forwardProbs[goal][t]
+				currProbs[goal] = forwardProbs*backProbs[goal][t]
 			else:
-				currProbs[goal] = probBack
+				currProbs[goal] = forwardProbs
 
 		currProbs = h.normalizeVals(currProbs)
 		probG.append(currProbs)
