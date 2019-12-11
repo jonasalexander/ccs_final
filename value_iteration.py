@@ -40,6 +40,7 @@ def legalActions(state):
 	return actions
 
 def cost(action):
+	#return math.sqrt(action[0]**2 + action[1]**2)
 	return 0 if action == (0, 0) else 1
 
 pathLengths = {goal: {} for goal in goalPos}
