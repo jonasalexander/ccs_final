@@ -34,22 +34,6 @@ if MODEL == 1:
 	plt.legend()
 	plt.show()
 
-
-# Model 2
-if MODEL == 2:
-	beta = 1.5
-	kappa = 0.9
-
-	probG = [{i: (1.0-kappa)/3 for i in goalPos.keys()}]
-	numStates = len(states)
-	for state in states:
-		probG.append({state: kappa/numStates})
-
-
-
-	# with probability kappa, complex goal that has intermediate point as goal first
-	# distribution over goals within each type uniform
-
 # Model 3 without backward-forward algorithm
 
 if MODEL == 3:
